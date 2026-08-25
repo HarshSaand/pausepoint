@@ -1,0 +1,4 @@
+{"turn":1,"sender":"contact","risk":0.14,"stage":"authority","action":"monitor","evidence":["authority"]}
+{"turn":2,"sender":"contact","risk":0.281,"stage":"urgency","action":"monitor","evidence":["urgency"]}
+{"turn":3,"sender":"contact","risk":0.442,"stage":"isolation","action":"llm_review","evidence":["isolation"]}
+{"turn":4,"sender":"contact","risk":0.678,"stage":"credential_or_payment","action":"warn_and_verify","evidence":["credential"]}
