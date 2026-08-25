@@ -78,6 +78,8 @@ The included four-turn conversation moves from an authority claim to urgency, is
 
 The recorded replay is available in [`results/demo_stream.jsonl`](results/demo_stream.jsonl).
 
+![PausePoint result preview showing the conversation stages and the warning decision](results/result-preview.png)
+
 ## Run the streaming replay
 
 Requires Python 3.10+ and no external packages.
