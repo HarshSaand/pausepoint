@@ -1,0 +1,71 @@
+{
+  "scope": "Synthetic fixture, actual engine replay",
+  "input": [
+    {
+      "sender": "contact",
+      "text": "Hello, I am calling from your bank's fraud team."
+    },
+    {
+      "sender": "contact",
+      "text": "There has been suspicious activity and we need to act immediately."
+    },
+    {
+      "sender": "contact",
+      "text": "Stay on the line and do not tell anyone while we secure it."
+    },
+    {
+      "sender": "contact",
+      "text": "Read the O.T.P verification code to me now."
+    }
+  ],
+  "output": [
+    {
+      "turn": 1,
+      "sender": "contact",
+      "text": "Hello, I am calling from your bank's fraud team.",
+      "risk": 0.14,
+      "stage": "authority",
+      "action": "monitor",
+      "evidence": [
+        "authority"
+      ],
+      "latency_ms": 0.27
+    },
+    {
+      "turn": 2,
+      "sender": "contact",
+      "text": "There has been suspicious activity and we need to act immediately.",
+      "risk": 0.281,
+      "stage": "urgency",
+      "action": "monitor",
+      "evidence": [
+        "urgency"
+      ],
+      "latency_ms": 0.019
+    },
+    {
+      "turn": 3,
+      "sender": "contact",
+      "text": "Stay on the line and do not tell anyone while we secure it.",
+      "risk": 0.442,
+      "stage": "isolation",
+      "action": "llm_review",
+      "evidence": [
+        "isolation"
+      ],
+      "latency_ms": 0.013
+    },
+    {
+      "turn": 4,
+      "sender": "contact",
+      "text": "Read the O.T.P verification code to me now.",
+      "risk": 0.678,
+      "stage": "credential_or_payment",
+      "action": "warn_and_verify",
+      "evidence": [
+        "credential"
+      ],
+      "latency_ms": 0.009
+    }
+  ]
+}

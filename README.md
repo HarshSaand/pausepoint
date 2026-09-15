@@ -1,5 +1,20 @@
 # PausePoint
 
+## Inspect an actual output
+
+![The credential request triggers a warning](docs/output-showcase.png)
+
+Synthetic four-turn fixture processed by the real rule-based streaming engine. The risk index is not a calibrated fraud probability; llm_review is a routing label, not a claim an LLM ran.
+
+[Open the result record](docs/output-example.json) · [Open the HTML report](docs/output-showcase.html)
+
+Reproduce the underlying output:
+
+```sh
+python -m pausepoint.cli --conversation data/demo_conversation.jsonl
+```
+
+
 PausePoint follows a conversation message by message and identifies when ordinary-looking contact develops into social engineering. It is designed around early detection: the system records *when* risk became actionable, not only whether a completed conversation contained a scam.
 
 ## Use case
@@ -11,9 +26,9 @@ PausePoint follows a conversation message by message and identifies when ordinar
 "Read the six-digit OTP to me."
 ```
 
-After each message, PausePoint updates the conversation stage, risk score and supporting evidence. A high-confidence credential or payment request can trigger an approved warning; ambiguous cases are escalated to an LLM evidence extractor.
+After each message, PausePoint updates the conversation stage, risk score and supporting evidence. Explicit credential or payment cues can trigger a `warn_and_verify` routing label; intermediate scores produce `llm_review`. The runnable engine does not execute an LLM or deliver a user warning.
 
-## System flow
+## Proposed learned-system flow (not the runnable baseline)
 
 ```mermaid
 flowchart LR
@@ -30,29 +45,29 @@ flowchart LR
     I --> K[Monitor, warn or verify]
 ```
 
-## Architecture
+## Architecture: implemented baseline and proposed extensions
 
 ### Pre-processing
 
-The runnable baseline applies Unicode NFKC normalisation, lowercasing and whitespace cleanup. It de-obfuscates spaced or punctuated terms such as `O.T.P`, masks URLs and extracts signals for phone numbers, currency amounts, OTPs, authority claims, urgency, secrecy, credential requests and transfers. The production experiment adds a spaCy entity pass and PII placeholders before model inference.
+The runnable baseline applies Unicode NFKC normalisation, lowercasing and whitespace cleanup. It de-obfuscates spaced or punctuated terms such as `O.T.P`, masks URLs and extracts signals for phone numbers, currency amounts, OTPs, authority claims, urgency, secrecy, credential requests and transfers. A proposed extension would add a spaCy entity pass and PII placeholders before model inference.
 
 ### Fast path
 
-Every message is processed with the latest eight conversation turns. The implemented scorer combines linguistic indicators with an exponentially weighted risk state. It predicts five interpretable stages: `benign`, `authority`, `urgency`, `isolation`, and `credential_or_payment`.
+The engine processes each new message and carries forward a decayed risk state; it retains up to eight recent records. The implemented scorer combines linguistic indicators with an exponentially weighted risk state. It predicts five interpretable stages: `benign`, `authority`, `urgency`, `isolation`, and `credential_or_payment`.
 
-The learned version replaces the rule score with `microsoft/deberta-v3-small`, fine-tuned as a multitask classifier for stage, scam risk and evidence spans, then exported to ONNX. Temperature scaling calibrates its probabilities. The target for the local fast path is p95 latency below 150–200 ms.
+A proposed learned version would replace the rule score with `microsoft/deberta-v3-small`, fine-tuned as a multitask classifier for stage, scam risk and evidence spans, then exported to ONNX. Temperature scaling calibrates its probabilities. The target for the local fast path is p95 latency below 150–200 ms.
 
-### Selective LLM path
+### Proposed selective LLM path (not implemented)
 
-Only uncertain or escalating conversations reach `Qwen2.5-7B-Instruct`. It runs with temperature `0` and constrained JSON output over numbered conversation turns, extracted entities and fast-path scores. Required fields include `claimed_identity`, `requested_action`, `pressure_tactics`, `scam_stage` and `supporting_messages`.
+The proposed extension would send uncertain or escalating conversations to `Qwen2.5-7B-Instruct`, configured with temperature `0` and constrained JSON output over numbered conversation turns, extracted entities and fast-path scores. Required fields include `claimed_identity`, `requested_action`, `pressure_tactics`, `scam_stage` and `supporting_messages`.
 
-The response is rejected if its schema is invalid, a cited turn does not exist or the cited text does not support the extracted action. The LLM contributes evidence but never directly issues a warning or blocks a transaction.
+The proposed validator would reject a response if its schema is invalid, a cited turn does not exist or the cited text does not support the extracted action. The LLM contributes evidence but never directly issues a warning or blocks a transaction.
 
 ### Post-processing
 
-The implemented policy uses three risk bands and hysteresis so a conversation does not oscillate between safe and unsafe after every message. Explicit credential or transfer requests receive additional weight. The full model combines calibrated classifier probability, validated LLM fields and deterministic indicators with logistic regression. Warnings are selected from reviewed templates, and every decision records the score, stage, evidence and processing time.
+The implemented policy uses three threshold-based risk bands and a decayed risk state; it does not implement separate enter/exit thresholds for hysteresis. Explicit credential or transfer requests receive additional weight. A proposed full model would combine calibrated classifier probability, validated LLM fields and deterministic indicators with logistic regression. The baseline emits routing labels rather than rendered warnings; every decision records the score, stage, evidence and processing time.
 
-## Data
+## Candidate data for future training
 
 - [UCI SMS Spam Collection](https://archive.ics.uci.edu/dataset/228/sms+spam+collection) for genuine single-message auxiliary training
 - [Scam Conversation Corpus](https://zenodo.org/records/15212527) for multi-turn scammer interactions
@@ -60,7 +75,7 @@ The implemented policy uses three risk bands and hysteresis so a conversation do
 
 Single-message and constructed multi-turn results will be reported separately. Complete conversations are replayed one turn at a time, so the streaming model cannot use evidence from future messages.
 
-## Evaluation
+## Planned evaluation (not completed benchmark results)
 
 - stage macro-F1 and scam PR-AUC
 - recall at a fixed false-positive rate
@@ -74,7 +89,7 @@ Single-message and constructed multi-turn results will be reported separately. C
 
 ## Demonstration result
 
-The included four-turn conversation moves from an authority claim to urgency, isolation and finally an OTP request. The streaming engine escalates from monitoring to LLM review on turn three and `warn_and_verify` on turn four. Each decision records its evidence and local processing time.
+The included four-turn conversation moves from an authority claim to urgency, isolation and finally an OTP request. The streaming engine changes from monitoring to the `llm_review` routing label on turn three and `warn_and_verify` on turn four. Each decision records its evidence and local processing time.
 
 The recorded replay is available in [`results/demo_stream.jsonl`](results/demo_stream.jsonl).
 
