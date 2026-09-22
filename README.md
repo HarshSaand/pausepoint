@@ -1,5 +1,7 @@
 # PausePoint
 
+[Read the project report (PDF)](docs/PROJECT_REPORT.pdf) · [Explore the explanation and flow diagram](docs/PROJECT_REPORT.md)
+
 ## Inspect an actual output
 
 ![The credential request triggers a warning](docs/output-showcase.png)
